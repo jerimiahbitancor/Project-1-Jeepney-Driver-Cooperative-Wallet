@@ -1,5 +1,5 @@
 import {
-  Server,
+  Horizon,
   Asset,
   TransactionBuilder,
   Operation,
@@ -8,7 +8,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { HORIZON_URL, TESTNET_USDC_ISSUER, USDC_CODE } from "@/constants";
 
-const server = new Server(HORIZON_URL);
+const server = new Horizon.Server(HORIZON_URL);
 
 export async function fetchBalances(publicKey: string) {
   try {
