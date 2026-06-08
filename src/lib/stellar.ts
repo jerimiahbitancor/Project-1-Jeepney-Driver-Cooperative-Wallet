@@ -13,6 +13,11 @@ const server = new Horizon.Server(HORIZON_URL);
 export async function fetchBalances(publicKey: string) {
   try {
     const account = await server.loadAccount(publicKey);
+    
+    if (!account || !account.balances) {
+      return [{ asset: "XLM", balance: "0.0000000" }];
+    }
+
     const balances = account.balances.map((b) => {
       if ("asset_code" in b) {
         return {
@@ -30,8 +35,11 @@ export async function fetchBalances(publicKey: string) {
     });
     return balances;
   } catch (error: any) {
-    // If account is not found (404), it means it's a new account
-    if (error.response && error.response.status === 404) {
+    // Log the full error for better debugging in the console
+    console.warn("Stellar balance fetch info:", error.message || error);
+
+    // If account is not found (404), return zero XLM
+    if (error?.response?.status === 404 || error?.message?.includes("404")) {
       return [
         {
           asset: "XLM",
@@ -40,8 +48,15 @@ export async function fetchBalances(publicKey: string) {
         },
       ];
     }
-    console.error("Error fetching balances:", error);
-    throw error;
+    
+    // For other errors (network, etc.), return a placeholder instead of throwing
+    return [
+      {
+        asset: "XLM",
+        balance: "Unavailable",
+        issuer: undefined,
+      },
+    ];
   }
 }
 
