@@ -1,15 +1,11 @@
+import { isConnected, signTransaction, getNetwork, requestAccess } from "@stellar/freighter-api";
+
 const TIMEOUT_MS = 2000;
 
-async function getFreighter() {
-  if (typeof window === "undefined") return null;
-  return await import("@stellar/freighter-api");
-}
-
 export async function checkFreighterConnection() {
-  const freighter = await getFreighter();
-  if (!freighter) return false;
+  if (typeof window === "undefined") return false;
 
-  const connectionPromise = freighter.isConnected();
+  const connectionPromise = isConnected();
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Freighter connection timed out")), TIMEOUT_MS)
   );
@@ -24,14 +20,12 @@ export async function checkFreighterConnection() {
 }
 
 export async function connectWallet() {
-  const freighter = await getFreighter();
-  if (!freighter) throw new Error("Freighter not available");
-
   if (!(await checkFreighterConnection())) {
     throw new Error("Freighter not found or not connected");
   }
 
-  const publicKey = await freighter.getPublicKey();
+  // requestAccess is preferred in v6 to prompt the user for connection
+  const publicKey = await requestAccess();
   if (!publicKey) {
     throw new Error("User denied access or no public key found");
   }
@@ -40,14 +34,11 @@ export async function connectWallet() {
 }
 
 export async function signWithFreighter(xdr: string) {
-  const freighter = await getFreighter();
-  if (!freighter) throw new Error("Freighter not available");
-  return await freighter.signTransaction(xdr, { network: "TESTNET" });
+  return await signTransaction(xdr, { network: "TESTNET" });
 }
 
 export async function checkNetwork() {
-  const freighter = await getFreighter();
-  if (!freighter) return null;
-  const network = await freighter.getNetwork();
+  if (typeof window === "undefined") return null;
+  const network = await getNetwork();
   return network;
 }
