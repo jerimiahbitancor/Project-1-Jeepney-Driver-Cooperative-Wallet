@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { connectWallet } from "@/lib/freighter";
-import { fetchBalances, buildFarePaymentTransaction, submitTransaction } from "@/lib/stellar";
+import { fetchBalances, buildFarePaymentTransaction, submitTransaction, buildTrustlineTransaction } from "@/lib/stellar";
 import { signWithFreighter } from "@/lib/freighter";
-import { TESTNET_DRIVER_ADDRESS, FARE_AMOUNT, STELLAR_EXPERT_URL } from "@/constants";
+import { TESTNET_DRIVER_ADDRESS, FARE_AMOUNT, STELLAR_EXPERT_URL, USDC_CODE } from "@/constants";
 
 interface Balance {
   asset: string;
@@ -18,6 +18,8 @@ export default function JeepneyApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+
+  const hasUSDC = balances.some(b => b.asset === USDC_CODE);
 
   const handleConnect = async () => {
     setLoading(true);
@@ -36,13 +38,34 @@ export default function JeepneyApp() {
     }
   };
 
+  const handleActivateUSDC = async () => {
+    if (!publicKey) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const xdr = await buildTrustlineTransaction(publicKey);
+      const signedXdr = await signWithFreighter(xdr);
+      if (!signedXdr) throw new Error("Trustline signature failed or rejected.");
+      
+      await submitTransaction(signedXdr);
+      // Refresh balances
+      const b = await fetchBalances(publicKey);
+      setBalances(b);
+    } catch (err: unknown) {
+      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to activate USDC.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePayment = async () => {
     if (!publicKey) return;
     setLoading(true);
     setError(null);
     setTxHash(null);
     try {
-      // 1. Check if wallet is on the correct network first
       const networkResult = await import("@stellar/freighter-api").then(m => m.getNetwork());
       const network = typeof networkResult === "string" ? networkResult : (networkResult as any).network;
       
@@ -51,17 +74,12 @@ export default function JeepneyApp() {
       }
 
       const xdr = await buildFarePaymentTransaction(publicKey, TESTNET_DRIVER_ADDRESS, FARE_AMOUNT);
-      
-      // Log XDR to console for manual verification if needed
-      console.log("Transaction XDR created:", xdr);
-      
       const signedXdr = await signWithFreighter(xdr);
       if (!signedXdr) throw new Error("Signing failed. Did you reject the transaction in Freighter?");
       
       const result = await submitTransaction(signedXdr);
       setTxHash(result.hash);
       
-      // Refresh balances after payment
       const b = await fetchBalances(publicKey);
       setBalances(b);
     } catch (err: unknown) {
@@ -94,38 +112,53 @@ export default function JeepneyApp() {
               <div className="mt-2 space-y-1">
                 {balances.map((b, i) => (
                   <p key={i} className="text-sm font-medium">
-                    {b.asset}: <span className="text-blue-600">{parseFloat(b.balance).toFixed(2)}</span>
+                    {b.asset}: <span className="text-blue-600">{parseFloat(b.balance).toFixed(b.asset === 'XLM' ? 2 : 2)}</span>
                   </p>
                 ))}
               </div>
             </div>
 
-            {!txHash ? (
-              <button
-                onClick={handlePayment}
-                disabled={loading}
-                className="w-full py-4 bg-green-500 text-white rounded-xl text-xl font-bold hover:bg-green-600 transition shadow-lg disabled:opacity-50"
-              >
-                {loading ? "Processing..." : `Pay ₱13 Jeepney Fare`}
-              </button>
-            ) : (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
-                <p className="text-green-700 font-bold text-lg">Payment Successful! 🎉</p>
-                <a
-                  href={`${STELLAR_EXPERT_URL}${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 block text-blue-500 underline text-sm"
-                >
-                  View on Stellar Expert
-                </a>
+            {!hasUSDC ? (
+              <div className="space-y-3">
+                <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200 text-center">
+                  USDC trustline not found. You need to activate it to pay fares.
+                </p>
                 <button
-                  onClick={() => setTxHash(null)}
-                  className="mt-4 text-xs text-gray-400 hover:text-gray-600"
+                  onClick={handleActivateUSDC}
+                  disabled={loading}
+                  className="w-full py-4 bg-amber-500 text-white rounded-xl text-lg font-bold hover:bg-amber-600 transition shadow-lg disabled:opacity-50"
                 >
-                  Make another payment
+                  {loading ? "Activating..." : "Step 1: Activate USDC"}
                 </button>
               </div>
+            ) : (
+              !txHash ? (
+                <button
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="w-full py-4 bg-green-500 text-white rounded-xl text-xl font-bold hover:bg-green-600 transition shadow-lg disabled:opacity-50"
+                >
+                  {loading ? "Processing..." : `Pay ₱13 Jeepney Fare`}
+                </button>
+              ) : (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+                  <p className="text-green-700 font-bold text-lg">Payment Successful! 🎉</p>
+                  <a
+                    href={`${STELLAR_EXPERT_URL}${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 block text-blue-500 underline text-sm"
+                  >
+                    View on Stellar Expert
+                  </a>
+                  <button
+                    onClick={() => setTxHash(null)}
+                    className="mt-4 text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Make another payment
+                  </button>
+                </div>
+              )
             )}
           </div>
         )}

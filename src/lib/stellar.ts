@@ -35,29 +35,31 @@ export async function fetchBalances(publicKey: string) {
     });
     return balances;
   } catch (error: any) {
-    // Log the full error for better debugging in the console
     console.warn("Stellar balance fetch info:", error.message || error);
-
-    // If account is not found (404), return zero XLM
     if (error?.response?.status === 404 || error?.message?.includes("404")) {
-      return [
-        {
-          asset: "XLM",
-          balance: "0.0000000",
-          issuer: undefined,
-        },
-      ];
+      return [{ asset: "XLM", balance: "0.0000000", issuer: undefined }];
     }
-    
-    // For other errors (network, etc.), return a placeholder instead of throwing
-    return [
-      {
-        asset: "XLM",
-        balance: "Unavailable",
-        issuer: undefined,
-      },
-    ];
+    return [{ asset: "XLM", balance: "Unavailable", issuer: undefined }];
   }
+}
+
+export async function buildTrustlineTransaction(publicKey: string) {
+  const account = await server.loadAccount(publicKey);
+  const usdcAsset = new Asset(USDC_CODE, TESTNET_USDC_ISSUER);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(
+      Operation.changeTrust({
+        asset: usdcAsset,
+      })
+    )
+    .setTimeout(60)
+    .build();
+
+  return tx.toXDR();
 }
 
 export async function buildFarePaymentTransaction(
@@ -65,11 +67,9 @@ export async function buildFarePaymentTransaction(
   destination: string,
   amount: string
 ) {
-  // 1. Load fresh account sequence
   const sourceAccount = await server.loadAccount(publicKey);
   const usdcAsset = new Asset(USDC_CODE, TESTNET_USDC_ISSUER);
 
-  // 2. Explicitly set network to TESTNET
   const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
     networkPassphrase: Networks.TESTNET,
@@ -88,7 +88,6 @@ export async function buildFarePaymentTransaction(
 }
 
 export async function submitTransaction(signedXdr: string) {
-  // Ensure we decode the XDR specifically as a TESTNET transaction
   const tx = TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET);
   return await server.submitTransaction(tx);
 }
