@@ -1,4 +1,4 @@
-import { isConnected, signTransaction, getNetwork, requestAccess } from "@stellar/freighter-api";
+import { isConnected, signTransaction, getNetwork, requestAccess, getPublicKey } from "@stellar/freighter-api";
 
 const TIMEOUT_MS = 2000;
 
@@ -24,7 +24,6 @@ export async function connectWallet() {
     throw new Error("Freighter not found or not connected");
   }
 
-  // requestAccess is preferred in v6 to prompt the user for connection
   const publicKey = await requestAccess();
   if (!publicKey) {
     throw new Error("User denied access or no public key found");
@@ -38,7 +37,7 @@ export async function signWithFreighter(xdr: string) {
     console.log("Requesting signature for XDR:", xdr);
     const result = await signTransaction(xdr, { 
       network: "TESTNET",
-      networkPassphrase: "Test SDF Network ; September 2015" // Explicit Testnet passphrase
+      networkPassphrase: "Test SDF Network ; September 2015" 
     });
     
     if (!result) {
@@ -48,7 +47,6 @@ export async function signWithFreighter(xdr: string) {
     
     console.log("Freighter signature result:", result);
 
-    // Handle different Freighter API return formats (string or object)
     if (typeof result === "string") return result;
     
     const signedXdr = (result as any).signedTransaction || (result as any).xdr || (result as any).signedXdr;
@@ -59,8 +57,12 @@ export async function signWithFreighter(xdr: string) {
   }
 }
 
-export async function checkNetwork() {
+export async function checkCurrentNetwork() {
   if (typeof window === "undefined") return null;
-  const network = await getNetwork();
-  return network;
+  return await getNetwork();
+}
+
+export async function getUserPublicKey() {
+  if (typeof window === "undefined") return null;
+  return await getPublicKey();
 }

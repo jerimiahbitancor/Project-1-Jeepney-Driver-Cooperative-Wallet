@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { connectWallet } from "@/lib/freighter";
+import { connectWallet, checkCurrentNetwork, getUserPublicKey } from "@/lib/freighter";
 import { fetchBalances, buildFarePaymentTransaction, submitTransaction } from "@/lib/stellar";
 import { signWithFreighter } from "@/lib/freighter";
 import { TESTNET_DRIVER_ADDRESS, FARE_AMOUNT, STELLAR_EXPERT_URL } from "@/constants";
@@ -43,7 +43,7 @@ export default function JeepneyApp() {
     setTxHash(null);
     try {
       // 1. Check network
-      const networkResult = await import("@stellar/freighter-api").then(m => m.getNetwork());
+      const networkResult = await checkCurrentNetwork();
       const network = typeof networkResult === "string" ? networkResult : (networkResult as any).network;
       
       if (network !== "TESTNET") {
@@ -51,10 +51,10 @@ export default function JeepneyApp() {
       }
 
       // 2. Double check the current account in Freighter
-      const currentResult = await import("@stellar/freighter-api").then(m => m.getPublicKey());
+      const currentResult = await getUserPublicKey();
       const currentKey = typeof currentResult === "string" ? currentResult : (currentResult as any).address;
       
-      if (currentKey !== publicKey) {
+      if (currentKey && currentKey !== publicKey) {
         setPublicKey(currentKey); // Auto-update to match the actual wallet
         throw new Error("Wallet account changed. Please try clicking the Pay button again.");
       }
