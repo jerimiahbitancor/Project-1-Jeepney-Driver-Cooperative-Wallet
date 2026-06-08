@@ -34,7 +34,9 @@ export async function connectWallet() {
 }
 
 export async function signWithFreighter(xdr: string) {
-  return await signTransaction(xdr, { network: "TESTNET" });
+  const result = await signTransaction(xdr, { network: "TESTNET" });
+  // Some versions of Freighter return an object { signedTransaction: "..." }
+  return typeof result === "string" ? result : (result as any).signedTransaction;
 }
 
 export async function checkNetwork() {

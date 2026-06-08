@@ -65,10 +65,11 @@ export async function buildFarePaymentTransaction(
   destination: string,
   amount: string
 ) {
-  const account = await server.loadAccount(publicKey);
+  // Ensure we have a fresh account sequence number
+  const sourceAccount = await server.loadAccount(publicKey);
   const usdcAsset = new Asset(USDC_CODE, TESTNET_USDC_ISSUER);
 
-  const transaction = new TransactionBuilder(account, {
+  const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
     networkPassphrase: Networks.TESTNET,
   })
@@ -82,7 +83,7 @@ export async function buildFarePaymentTransaction(
     .setTimeout(60)
     .build();
 
-  return transaction.toXDR();
+  return tx.toXDR();
 }
 
 export async function submitTransaction(signedXdr: string) {
