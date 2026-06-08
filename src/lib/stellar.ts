@@ -68,7 +68,9 @@ export async function buildFarePaymentTransaction(
   amount: string
 ) {
   const sourceAccount = await server.loadAccount(publicKey);
-  const usdcAsset = new Asset(USDC_CODE, TESTNET_USDC_ISSUER);
+  
+  // Use XLM (Native Asset) - No trustline required!
+  const nativeAsset = Asset.native();
 
   const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
@@ -77,7 +79,7 @@ export async function buildFarePaymentTransaction(
     .addOperation(
       Operation.payment({
         destination,
-        asset: usdcAsset,
+        asset: nativeAsset,
         amount,
       })
     )
