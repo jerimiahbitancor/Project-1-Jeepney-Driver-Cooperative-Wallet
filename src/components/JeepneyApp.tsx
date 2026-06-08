@@ -23,7 +23,8 @@ export default function JeepneyApp() {
     setLoading(true);
     setError(null);
     try {
-      const key = await connectWallet();
+      const result = await connectWallet();
+      const key = typeof result === "string" ? result : (result as any).address;
       setPublicKey(key);
       const b = await fetchBalances(key);
       setBalances(b);
