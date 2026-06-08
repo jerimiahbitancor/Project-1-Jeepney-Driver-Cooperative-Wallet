@@ -42,7 +42,17 @@ export default function JeepneyApp() {
     setError(null);
     setTxHash(null);
     try {
+      // 1. Check if wallet is on the correct network first
+      const network = await import("@stellar/freighter-api").then(m => m.getNetwork());
+      if (network !== "TESTNET") {
+        throw new Error(`Please switch your Freighter wallet to TESTNET (Current: ${network})`);
+      }
+
       const xdr = await buildFarePaymentTransaction(publicKey, TESTNET_DRIVER_ADDRESS, FARE_AMOUNT);
+      
+      // Log XDR to console for manual verification if needed
+      console.log("Transaction XDR created:", xdr);
+      
       const signedXdr = await signWithFreighter(xdr);
       if (!signedXdr) throw new Error("Signing failed. Did you reject the transaction in Freighter?");
       
