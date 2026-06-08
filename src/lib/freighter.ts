@@ -34,9 +34,20 @@ export async function connectWallet() {
 }
 
 export async function signWithFreighter(xdr: string) {
-  const result = await signTransaction(xdr, { network: "TESTNET" });
-  // Some versions of Freighter return an object { signedTransaction: "..." }
-  return typeof result === "string" ? result : (result as any).signedTransaction;
+  try {
+    const result = await signTransaction(xdr, { network: "TESTNET" });
+    
+    if (!result) return null;
+    
+    // Handle different Freighter API return formats (string or object)
+    if (typeof result === "string") return result;
+    
+    const signedXdr = (result as any).signedTransaction || (result as any).xdr || (result as any).signedXdr;
+    return signedXdr || null;
+  } catch (error) {
+    console.error("Freighter signing error:", error);
+    return null;
+  }
 }
 
 export async function checkNetwork() {

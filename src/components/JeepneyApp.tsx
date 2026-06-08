@@ -44,7 +44,7 @@ export default function JeepneyApp() {
     try {
       const xdr = await buildFarePaymentTransaction(publicKey, TESTNET_DRIVER_ADDRESS, FARE_AMOUNT);
       const signedXdr = await signWithFreighter(xdr);
-      if (!signedXdr) throw new Error("Signing failed");
+      if (!signedXdr) throw new Error("Signing failed. Did you reject the transaction in Freighter?");
       
       const result = await submitTransaction(signedXdr);
       setTxHash(result.hash);
