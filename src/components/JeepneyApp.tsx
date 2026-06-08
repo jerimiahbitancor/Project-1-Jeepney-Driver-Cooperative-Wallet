@@ -43,7 +43,9 @@ export default function JeepneyApp() {
     setTxHash(null);
     try {
       // 1. Check if wallet is on the correct network first
-      const network = await import("@stellar/freighter-api").then(m => m.getNetwork());
+      const networkResult = await import("@stellar/freighter-api").then(m => m.getNetwork());
+      const network = typeof networkResult === "string" ? networkResult : (networkResult as any).network;
+      
       if (network !== "TESTNET") {
         throw new Error(`Please switch your Freighter wallet to TESTNET (Current: ${network})`);
       }
