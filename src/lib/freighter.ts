@@ -1,4 +1,4 @@
-import { isConnected, signTransaction, getNetwork, requestAccess, getPublicKey } from "@stellar/freighter-api";
+import { isConnected, signTransaction, getNetwork, requestAccess, getAddress } from "@stellar/freighter-api";
 
 const TIMEOUT_MS = 2000;
 
@@ -64,5 +64,6 @@ export async function checkCurrentNetwork() {
 
 export async function getUserPublicKey() {
   if (typeof window === "undefined") return null;
-  return await getPublicKey();
+  // In v6, getAddress is the correct method name
+  return await getAddress();
 }
