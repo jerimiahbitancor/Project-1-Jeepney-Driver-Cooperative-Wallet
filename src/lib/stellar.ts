@@ -65,10 +65,11 @@ export async function buildFarePaymentTransaction(
   destination: string,
   amount: string
 ) {
-  // Ensure we have a fresh account sequence number
+  // 1. Load fresh account sequence
   const sourceAccount = await server.loadAccount(publicKey);
   const usdcAsset = new Asset(USDC_CODE, TESTNET_USDC_ISSUER);
 
+  // 2. Explicitly set network to TESTNET
   const tx = new TransactionBuilder(sourceAccount, {
     fee: BASE_FEE,
     networkPassphrase: Networks.TESTNET,
@@ -87,6 +88,7 @@ export async function buildFarePaymentTransaction(
 }
 
 export async function submitTransaction(signedXdr: string) {
+  // Ensure we decode the XDR specifically as a TESTNET transaction
   const tx = TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET);
   return await server.submitTransaction(tx);
 }
