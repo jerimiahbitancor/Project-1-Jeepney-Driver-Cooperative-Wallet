@@ -42,7 +42,7 @@ export default function JeepneyApp() {
     setError(null);
     setTxHash(null);
     try {
-      // Network check
+      // 1. Check network
       const networkResult = await import("@stellar/freighter-api").then(m => m.getNetwork());
       const network = typeof networkResult === "string" ? networkResult : (networkResult as any).network;
       
@@ -50,9 +50,20 @@ export default function JeepneyApp() {
         throw new Error(`Please switch your Freighter wallet to TESTNET`);
       }
 
+      // 2. Double check the current account in Freighter
+      const currentResult = await import("@stellar/freighter-api").then(m => m.getPublicKey());
+      const currentKey = typeof currentResult === "string" ? currentResult : (currentResult as any).address;
+      
+      if (currentKey !== publicKey) {
+        setPublicKey(currentKey); // Auto-update to match the actual wallet
+        throw new Error("Wallet account changed. Please try clicking the Pay button again.");
+      }
+
+      console.log("Building transaction for:", publicKey);
       const xdr = await buildFarePaymentTransaction(publicKey, TESTNET_DRIVER_ADDRESS, FARE_AMOUNT);
+      
       const signedXdr = await signWithFreighter(xdr);
-      if (!signedXdr) throw new Error("Signing failed. Did you reject the transaction?");
+      if (!signedXdr) throw new Error("Signing failed. Did you reject the transaction or is the window hidden?");
       
       const result = await submitTransaction(signedXdr);
       setTxHash(result.hash);
