@@ -29,7 +29,17 @@ export async function fetchBalances(publicKey: string) {
       }
     });
     return balances;
-  } catch (error) {
+  } catch (error: any) {
+    // If account is not found (404), it means it's a new account
+    if (error.response && error.response.status === 404) {
+      return [
+        {
+          asset: "XLM",
+          balance: "0.0000000",
+          issuer: undefined,
+        },
+      ];
+    }
     console.error("Error fetching balances:", error);
     throw error;
   }
